@@ -73,18 +73,7 @@ if args.path is not None:
     except ValueError as e:
         print(f"Error: Invalid path - {e}", file=sys.stderr)
         sys.exit(1)
-    with Image.open(validated_path) as image_file:
-        # Create a copy so we can close the file handle immediately if needed, 
-        # or just work within the block. For this script, we'll copy to ensure
-        # we don't hold the file open during heavy processing if not needed,
-        # but the simplest is just to load it.
-        # However, Pillow's lazy loading might need the file open. 
-        # Best practice: keep the file open while working with it.
-        image = image_file
-        
-        # Load data to ensure we have it before closing if we were to copy, 
-        # but here we'll just indent the logic or simpler: use .load()
-        image.load()
+    image = Image.open(validated_path)
 
     if image.format == "GIF":
         image.seek(1)
