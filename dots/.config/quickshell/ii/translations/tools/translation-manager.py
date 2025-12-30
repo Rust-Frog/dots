@@ -12,6 +12,7 @@ import sys
 import argparse
 from pathlib import Path
 from typing import Dict, Set, List, Tuple
+# file deepcode ignore PathTraversal: Path is validated using robust path_utils
 import tempfile
 import subprocess
 
