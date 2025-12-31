@@ -318,6 +318,36 @@ Item {
                     }
                 }
                 
+                // Discoverable toggle
+                ConfigRow {
+                    visible: Bluetooth.defaultAdapter?.enabled ?? false
+                    
+                    ConfigSwitch {
+                        text: Translation.tr("Discoverable")
+                        checked: Bluetooth.defaultAdapter?.discoverable ?? false
+                        onCheckedChanged: {
+                            if (Bluetooth.defaultAdapter) {
+                                Bluetooth.defaultAdapter.discoverable = checked;
+                            }
+                        }
+                    }
+                }
+                
+                // Pairable toggle
+                ConfigRow {
+                    visible: Bluetooth.defaultAdapter?.enabled ?? false
+                    
+                    ConfigSwitch {
+                        text: Translation.tr("Pairable")
+                        checked: Bluetooth.defaultAdapter?.pairable ?? false
+                        onCheckedChanged: {
+                            if (Bluetooth.defaultAdapter) {
+                                Bluetooth.defaultAdapter.pairable = checked;
+                            }
+                        }
+                    }
+                }
+                
                 StyledIndeterminateProgressBar {
                     visible: Bluetooth.defaultAdapter?.discovering ?? false
                     Layout.fillWidth: true
