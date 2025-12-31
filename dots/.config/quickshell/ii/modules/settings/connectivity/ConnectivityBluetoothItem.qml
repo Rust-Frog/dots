@@ -70,7 +70,7 @@ Rectangle {
                 
                 MaterialSymbol {
                     anchors.centerIn: parent
-                    text: Icons.getBluetoothDeviceMaterialSymbol(root.device?.icon || "")
+                    text: Icons.getBluetoothDeviceMaterialSymbol(root.device?.icon ?? "")
                     iconSize: 20
                     color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
                 }
@@ -83,7 +83,7 @@ Rectangle {
                 
                 StyledText {
                     Layout.fillWidth: true
-                    text: root.device?.name || Translation.tr("Unknown device")
+                    text: root.device?.name ?? Translation.tr("Unknown device")
                     elide: Text.ElideRight
                     font.pixelSize: Appearance.font.pixelSize.normal
                     font.weight: root.isConnected ? Font.Medium : Font.Normal
@@ -101,73 +101,37 @@ Rectangle {
                         radius: 4
                         color: root.isConnected ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer2
                         opacity: root.isConnected ? 0.2 : 0.1
+                    }
+                    
+                    RowLayout {
+                        id: statusRow
+                        visible: root.isConnected || root.isPaired
+                        spacing: 3
                         
-                        RowLayout {
-                            id: statusRow
-                            anchors.centerIn: parent
-                            spacing: 3
-                            
-                            MaterialSymbol {
-                                text: root.isConnected ? "bluetooth_connected" : "bluetooth"
-                                iconSize: 12
-                                color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
-                            }
-                            StyledText {
-                                text: root.isConnected ? Translation.tr("Connected") : Translation.tr("Paired")
-                                font.pixelSize: 10
-                                font.weight: Font.Medium
-                                color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
-                            }
+                        MaterialSymbol {
+                            text: root.isConnected ? "bluetooth_connected" : "bluetooth"
+                            iconSize: 12
+                            color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
+                        }
+                        StyledText {
+                            text: root.isConnected ? Translation.tr("Connected") : Translation.tr("Paired")
+                            font.pixelSize: 10
+                            font.weight: Font.Medium
+                            color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
                         }
                     }
                     
                     // Battery indicator
                     RowLayout {
-                        visible: root.hasBattery
+                        visible: root.hasBattery && root.batteryLevel > 0
                         spacing: 4
                         
-                        // Battery icon with level
-                        Item {
-                            implicitWidth: 20
-                            implicitHeight: 12
-                            
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.rightMargin: 2
-                                radius: 2
-                                color: "transparent"
-                                border.width: 1.5
-                                border.color: batteryColor
-                                
-                                Rectangle {
-                                    anchors {
-                                        left: parent.left
-                                        top: parent.top
-                                        bottom: parent.bottom
-                                        margins: 2
-                                    }
-                                    width: (parent.width - 4) * root.batteryLevel
-                                    radius: 1
-                                    color: batteryColor
-                                }
-                            }
-                            
-                            Rectangle {
-                                anchors {
-                                    right: parent.right
-                                    verticalCenter: parent.verticalCenter
-                                }
-                                width: 2
-                                height: 6
-                                radius: 1
-                                color: batteryColor
-                            }
-                            
-                            property color batteryColor: {
-                                if (root.batteryLevel < 0.2) return Appearance.colors.colError;
-                                if (root.batteryLevel < 0.4) return Appearance.colors.colWarning;
-                                return root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2;
-                            }
+                        MaterialSymbol {
+                            text: root.batteryLevel < 0.2 ? "battery_alert" : 
+                                  root.batteryLevel < 0.5 ? "battery_3_bar" : "battery_full"
+                            iconSize: 14
+                            color: root.batteryLevel < 0.2 ? Appearance.colors.colError : 
+                                   (root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext)
                         }
                         
                         StyledText {
@@ -206,70 +170,198 @@ Rectangle {
                 opacity: 0.5
             }
             
+            // Device details (when connected or paired)
+            ColumnLayout {
+                visible: root.isPaired || root.isConnected
+                Layout.fillWidth: true
+                spacing: 4
+                
+                RowLayout {
+                    Layout.fillWidth: true
+                    StyledText {
+                        text: Translation.tr("Status")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                        opacity: 0.7
+                    }
+                    Item { Layout.fillWidth: true }
+                    StyledText {
+                        text: root.isConnected ? Translation.tr("Connected") : Translation.tr("Paired")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                    }
+                }
+                
+                RowLayout {
+                    visible: root.hasBattery && root.batteryLevel > 0
+                    Layout.fillWidth: true
+                    StyledText {
+                        text: Translation.tr("Battery")
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                        opacity: 0.7
+                    }
+                    Item { Layout.fillWidth: true }
+                    StyledText {
+                        text: `${Math.round(root.batteryLevel * 100)}%`
+                        font.pixelSize: Appearance.font.pixelSize.small
+                        color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                    }
+                }
+            }
+            
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 10
 
-                // Connect/Disconnect button
-                RippleButton {
-                    implicitWidth: 110
-                    implicitHeight: 34
-                    buttonRadius: Appearance.rounding.full
-                    colBackground: root.isConnected ? Appearance.colors.colLayer3 : Appearance.colors.colPrimary
-                    colBackgroundHover: root.isConnected ? Appearance.colors.colLayer3Hover : Appearance.colors.colPrimaryHover
+                // Pair button (for unpaired devices)
+                Item {
+                    visible: !root.isPaired && !root.isConnected
+                    implicitWidth: 36
+                    implicitHeight: 36
                     
-                    onClicked: {
-                        if (root.isConnected) {
-                            root.device.disconnect();
-                        } else {
-                            root.device.connect();
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 18
+                        color: pairMouseArea.containsMouse ? Appearance.colors.colPrimaryHover : Appearance.colors.colPrimary
+                        
+                        Behavior on color {
+                            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
                         }
                     }
                     
-                    contentItem: RowLayout {
+                    MaterialSymbol {
                         anchors.centerIn: parent
-                        spacing: 6
-                        
-                        MaterialSymbol {
-                            text: root.isConnected ? "bluetooth_disabled" : "bluetooth"
-                            iconSize: 16
-                            color: root.isConnected ? Appearance.colors.colOnLayer3 : Appearance.colors.colOnPrimary
-                        }
-                        StyledText {
-                            text: root.isConnected ? Translation.tr("Disconnect") : Translation.tr("Connect")
-                            color: root.isConnected ? Appearance.colors.colOnLayer3 : Appearance.colors.colOnPrimary
-                            font.pixelSize: Appearance.font.pixelSize.small
-                        }
+                        text: "bluetooth_searching"
+                        iconSize: 20
+                        color: Appearance.colors.colOnPrimary
+                    }
+                    
+                    MouseArea {
+                        id: pairMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.device?.connect()  // connect() on unpaired device pairs it
                     }
                 }
+                
+                StyledText {
+                    visible: !root.isPaired && !root.isConnected
+                    text: Translation.tr("Tap to pair")
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colSubtext
+                }
 
-                // Forget button (only for paired devices)
-                RippleButton {
-                    visible: root.isPaired
-                    implicitWidth: 90
-                    implicitHeight: 34
-                    buttonRadius: Appearance.rounding.full
-                    colBackground: Appearance.colors.colError
-                    colBackgroundHover: Appearance.colors.colErrorHover
+                // Connect button (for paired but not connected)
+                Item {
+                    visible: root.isPaired && !root.isConnected
+                    implicitWidth: 36
+                    implicitHeight: 36
                     
-                    onClicked: {
-                        root.device?.forget();
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 18
+                        color: connectMouseArea.containsMouse ? Appearance.colors.colPrimaryHover : Appearance.colors.colPrimary
+                        
+                        Behavior on color {
+                            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                        }
                     }
                     
-                    contentItem: RowLayout {
+                    MaterialSymbol {
                         anchors.centerIn: parent
-                        spacing: 4
+                        text: "bluetooth"
+                        iconSize: 20
+                        color: Appearance.colors.colOnPrimary
+                    }
+                    
+                    MouseArea {
+                        id: connectMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.device?.connect()
+                    }
+                }
+                
+                StyledText {
+                    visible: root.isPaired && !root.isConnected
+                    text: Translation.tr("Tap to connect")
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colSubtext
+                }
+
+                // Disconnect button (for connected devices)
+                Item {
+                    visible: root.isConnected
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 18
+                        color: disconnectMouseArea.containsMouse ? Appearance.colors.colLayer3Hover : Appearance.colors.colLayer3
                         
-                        MaterialSymbol {
-                            text: "delete"
-                            iconSize: 16
-                            color: Appearance.colors.colOnError
+                        Behavior on color {
+                            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
                         }
-                        StyledText {
-                            text: Translation.tr("Forget")
-                            color: Appearance.colors.colOnError
-                            font.pixelSize: Appearance.font.pixelSize.small
+                    }
+                    
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "bluetooth_disabled"
+                        iconSize: 20
+                        color: Appearance.colors.colOnLayer3
+                    }
+                    
+                    MouseArea {
+                        id: disconnectMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.device?.disconnect()
+                    }
+                }
+                
+                StyledText {
+                    visible: root.isConnected
+                    text: Translation.tr("Tap to disconnect")
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colSubtext
+                }
+                
+                Item { Layout.fillWidth: true }
+
+                // Forget button (only for paired devices)
+                Item {
+                    visible: root.isPaired
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 18
+                        color: forgetMouseArea.containsMouse ? Appearance.colors.colErrorHover : Appearance.colors.colError
+                        
+                        Behavior on color {
+                            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
                         }
+                    }
+                    
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "delete"
+                        iconSize: 20
+                        color: Appearance.colors.colOnError
+                    }
+                    
+                    MouseArea {
+                        id: forgetMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.device?.forget()
                     }
                 }
             }
