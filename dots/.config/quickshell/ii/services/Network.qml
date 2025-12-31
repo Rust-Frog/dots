@@ -202,7 +202,7 @@ Singleton {
     Process {
         id: getConnections
         running: true
-        command: ["nmcli", "-g", "NAME,UUID,TYPE", "-t", "connection", "show"]
+        command: ["nmcli", "-g", "NAME,UUID,TYPE", "connection", "show"]
         environment: ({
             LANG: "C",
             LC_ALL: "C"
