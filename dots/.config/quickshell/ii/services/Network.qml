@@ -73,11 +73,11 @@ Singleton {
     }
 
     function connectToWifiNetwork(accessPoint: WifiAccessPoint): void {
+        console.info("[Network] Connecting to:", accessPoint.ssid);
         accessPoint.askingPassword = false;
         root.wifiConnectTarget = accessPoint;
         // We use this instead of `nmcli connection up SSID` because this also creates a connection profile
-        connectProc.exec(["nmcli", "dev", "wifi", "connect", accessPoint.ssid])
-
+        connectProc.exec(["nmcli", "dev", "wifi", "connect", accessPoint.ssid]);
     }
 
     function disconnectWifiNetwork(): void {
@@ -109,15 +109,18 @@ Singleton {
     }
 
     function changePassword(network: WifiAccessPoint, password: string, username = ""): void {
+        console.info("[Network] changePassword called for:", network.ssid, "password length:", password.length);
         // TODO: enterprise wifi with username
         network.askingPassword = false;
         root.wifiConnectTarget = network;
         // Use nmcli dev wifi connect with password - this creates a proper profile with security settings
+        const cmd = "nmcli dev wifi connect \"" + network.ssid + "\" password \"$PASSWORD\"";
+        console.info("[Network] Running command:", cmd);
         connectProc.exec({
             "environment": {
                 "PASSWORD": password
             },
-            "command": ["bash", "-c", "nmcli dev wifi connect \"" + network.ssid + "\" password \"$PASSWORD\""]
+            "command": ["bash", "-c", cmd]
         });
     }
 
@@ -133,21 +136,23 @@ Singleton {
         })
         stdout: SplitParser {
             onRead: line => {
-                // print(line)
-                getNetworks.running = true
+                console.info("[Network connectProc stdout]", line);
+                getNetworks.running = true;
             }
         }
         stderr: SplitParser {
             onRead: line => {
-                // print("err:", line)
+                console.error("[Network connectProc stderr]", line);
                 if (line.includes("Secrets were required") && root.wifiConnectTarget) {
-                    root.wifiConnectTarget.askingPassword = true
+                    console.info("[Network] Password required, showing password prompt");
+                    root.wifiConnectTarget.askingPassword = true;
                 }
             }
         }
         onExited: (exitCode, exitStatus) => {
+            console.info("[Network connectProc] exited with code:", exitCode);
             if (root.wifiConnectTarget) {
-                root.wifiConnectTarget.askingPassword = (exitCode !== 0)
+                root.wifiConnectTarget.askingPassword = (exitCode !== 0);
             }
             root.wifiConnectTarget = null
         }
