@@ -113,14 +113,15 @@ Singleton {
         // TODO: enterprise wifi with username
         network.askingPassword = false;
         root.wifiConnectTarget = network;
-        // Use nmcli dev wifi connect with password - this creates a proper profile with security settings
-        const cmd = "nmcli dev wifi connect \"" + network.ssid + "\" password \"$PASSWORD\"";
-        console.info("[Network] Running command:", cmd);
-        connectProc.exec({
+        // Use a dedicated process that properly handles the password environment variable
+        connectWithPasswordProc.exec({
             "environment": {
-                "PASSWORD": password
+                "LANG": "C",
+                "LC_ALL": "C",
+                "WIFI_SSID": network.ssid,
+                "WIFI_PASSWORD": password
             },
-            "command": ["bash", "-c", cmd]
+            "command": ["bash", "-c", "nmcli dev wifi connect \"$WIFI_SSID\" password \"$WIFI_PASSWORD\""]
         });
     }
 
@@ -155,6 +156,33 @@ Singleton {
                 root.wifiConnectTarget.askingPassword = (exitCode !== 0);
             }
             root.wifiConnectTarget = null
+        }
+    }
+
+    // Dedicated process for connecting with password - environment is set per-exec
+    Process {
+        id: connectWithPasswordProc
+        stdout: SplitParser {
+            onRead: line => {
+                console.info("[Network connectWithPasswordProc stdout]", line);
+                getNetworks.running = true;
+                getConnections.running = true;
+            }
+        }
+        stderr: SplitParser {
+            onRead: line => {
+                console.error("[Network connectWithPasswordProc stderr]", line);
+            }
+        }
+        onExited: (exitCode, exitStatus) => {
+            console.info("[Network connectWithPasswordProc] exited with code:", exitCode);
+            if (root.wifiConnectTarget) {
+                root.wifiConnectTarget.askingPassword = (exitCode !== 0);
+            }
+            root.wifiConnectTarget = null;
+            // Refresh connection list
+            getNetworks.running = true;
+            getConnections.running = true;
         }
     }
 
