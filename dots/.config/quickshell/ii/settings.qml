@@ -71,14 +71,24 @@ ApplicationWindow {
         }
     ]
     
-    // Read deep-linking from environment variables (set by dialogs)
+    // Parse command-line arguments for deep-linking (e.g., --page=1 --tab=0)
     property int initialPage: {
-        const envPage = Quickshell.env("QS_SETTINGS_PAGE");
-        return envPage ? parseInt(envPage) : 0;
+        const args = Qt.application.arguments;
+        for (let i = 0; i < args.length; i++) {
+            if (args[i].startsWith("--page=")) {
+                return parseInt(args[i].split("=")[1]) || 0;
+            }
+        }
+        return 0;
     }
     property int initialTab: {
-        const envTab = Quickshell.env("QS_SETTINGS_TAB");
-        return envTab ? parseInt(envTab) : 0;
+        const args = Qt.application.arguments;
+        for (let i = 0; i < args.length; i++) {
+            if (args[i].startsWith("--tab=")) {
+                return parseInt(args[i].split("=")[1]) || 0;
+            }
+        }
+        return 0;
     }
     property int currentPage: initialPage
 
@@ -254,7 +264,9 @@ ApplicationWindow {
                     opacity: 1.0
 
                     active: Config.ready
-                    source: Config.ready ? root.pages[root.currentPage].component : ""
+                    Component.onCompleted: {
+                        source = root.pages[0].component
+                    }
 
                     Connections {
                         target: root
