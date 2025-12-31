@@ -94,30 +94,34 @@ Rectangle {
                     spacing: 8
                     
                     // Status badge
-                    Rectangle {
+                    Item {
                         visible: root.isConnected || root.isPaired
                         implicitWidth: statusRow.implicitWidth + 10
                         implicitHeight: 18
-                        radius: 4
-                        color: root.isConnected ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer2
-                        opacity: root.isConnected ? 0.2 : 0.1
-                    }
-                    
-                    RowLayout {
-                        id: statusRow
-                        visible: root.isConnected || root.isPaired
-                        spacing: 3
                         
-                        MaterialSymbol {
-                            text: root.isConnected ? "bluetooth_connected" : "bluetooth"
-                            iconSize: 12
-                            color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 4
+                            color: root.isConnected ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer2
+                            opacity: root.isConnected ? 0.2 : 0.1
                         }
-                        StyledText {
-                            text: root.isConnected ? Translation.tr("Connected") : Translation.tr("Paired")
-                            font.pixelSize: 10
-                            font.weight: Font.Medium
-                            color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
+                        
+                        RowLayout {
+                            id: statusRow
+                            anchors.centerIn: parent
+                            spacing: 3
+                            
+                            MaterialSymbol {
+                                text: root.isConnected ? "bluetooth_connected" : "bluetooth"
+                                iconSize: 12
+                                color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
+                            }
+                            StyledText {
+                                text: root.isConnected ? Translation.tr("Connected") : Translation.tr("Paired")
+                                font.pixelSize: 10
+                                font.weight: Font.Medium
+                                color: root.isConnected ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
+                            }
                         }
                     }
                     
