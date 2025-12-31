@@ -108,8 +108,8 @@ Singleton {
         Quickshell.execDetached(["xdg-open", "https://nmcheck.gnome.org/"]) // From some StackExchange thread, seems to work
     }
 
-    function changePassword(network: WifiAccessPoint, password: string, username = ""): void {
-        console.info("[Network] changePassword called for:", network.ssid, "password length:", password.length);
+    function providePass(network: WifiAccessPoint, password: string, username = ""): void {
+        console.info("[Network] providePass called for:", network.ssid, "password length:", password.length);
         // TODO: enterprise wifi with username
         network.askingPassword = false;
         root.wifiConnectTarget = network;
