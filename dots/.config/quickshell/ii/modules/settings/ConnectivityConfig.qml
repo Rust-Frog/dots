@@ -73,21 +73,11 @@ Item {
                 icon: "wifi"
                 title: Translation.tr("Wi-Fi")
                 
-                ConfigRow {
-                    ConfigSwitch {
-                        text: Translation.tr("Enable Wi-Fi")
-                        checked: Network.wifiEnabled
-                        onCheckedChanged: {
-                            Network.enableWifi(checked);
-                        }
-                    }
-                    
-                    Item { Layout.fillWidth: true }
-                    
+                headerExtra: [
                     RippleButton {
-                        implicitWidth: 100
-                        implicitHeight: 36
-                        enabled: Network.wifiEnabled && !Network.wifiScanning
+                        visible: Network.wifiEnabled
+                        implicitWidth: 90
+                        implicitHeight: 32
                         buttonRadius: Appearance.rounding.full
                         colBackground: Appearance.colors.colLayer2
                         colBackgroundHover: Appearance.colors.colLayer2Hover
@@ -95,16 +85,27 @@ Item {
                         
                         contentItem: RowLayout {
                             anchors.centerIn: parent
-                            spacing: 6
+                            spacing: 4
                             MaterialSymbol {
                                 text: "refresh"
-                                iconSize: 18
+                                iconSize: 16
                                 color: Appearance.colors.colOnLayer2
                             }
                             StyledText {
                                 text: Translation.tr("Scan")
+                                font.pixelSize: Appearance.font.pixelSize.small
                                 color: Appearance.colors.colOnLayer2
                             }
+                        }
+                    }
+                ]
+                
+                ConfigRow {
+                    ConfigSwitch {
+                        text: Translation.tr("Enable Wi-Fi")
+                        checked: Network.wifiEnabled
+                        onCheckedChanged: {
+                            Network.enableWifi(checked);
                         }
                     }
                 }
@@ -244,26 +245,14 @@ Item {
                 icon: "bluetooth"
                 title: Translation.tr("Bluetooth")
                 
-                ConfigRow {
-                    ConfigSwitch {
-                        text: Translation.tr("Enable Bluetooth")
-                        checked: Bluetooth.defaultAdapter?.enabled ?? false
-                        onCheckedChanged: {
-                            if (Bluetooth.defaultAdapter) {
-                                Bluetooth.defaultAdapter.enabled = checked;
-                            }
-                        }
-                    }
-                    
-                    Item { Layout.fillWidth: true }
-                    
+                headerExtra: [
                     RippleButton {
-                        implicitWidth: 100
-                        implicitHeight: 36
-                        enabled: Bluetooth.defaultAdapter?.enabled ?? false
+                        visible: Bluetooth.defaultAdapter?.enabled ?? false
+                        implicitWidth: 90
+                        implicitHeight: 32
                         buttonRadius: Appearance.rounding.full
-                        colBackground: Appearance.colors.colLayer2
-                        colBackgroundHover: Appearance.colors.colLayer2Hover
+                        colBackground: Bluetooth.defaultAdapter?.discovering ? Appearance.colors.colPrimary : Appearance.colors.colLayer2
+                        colBackgroundHover: Bluetooth.defaultAdapter?.discovering ? Appearance.colors.colPrimaryHover : Appearance.colors.colLayer2Hover
                         onClicked: {
                             if (Bluetooth.defaultAdapter) {
                                 Bluetooth.defaultAdapter.discovering = !Bluetooth.defaultAdapter.discovering;
@@ -272,15 +261,28 @@ Item {
                         
                         contentItem: RowLayout {
                             anchors.centerIn: parent
-                            spacing: 6
+                            spacing: 4
                             MaterialSymbol {
-                                text: Bluetooth.defaultAdapter?.discovering ? "bluetooth_searching" : "search"
-                                iconSize: 18
-                                color: Appearance.colors.colOnLayer2
+                                text: Bluetooth.defaultAdapter?.discovering ? "stop" : "bluetooth_searching"
+                                iconSize: 16
+                                color: Bluetooth.defaultAdapter?.discovering ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer2
                             }
                             StyledText {
                                 text: Bluetooth.defaultAdapter?.discovering ? Translation.tr("Stop") : Translation.tr("Scan")
-                                color: Appearance.colors.colOnLayer2
+                                font.pixelSize: Appearance.font.pixelSize.small
+                                color: Bluetooth.defaultAdapter?.discovering ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer2
+                            }
+                        }
+                    }
+                ]
+                
+                ConfigRow {
+                    ConfigSwitch {
+                        text: Translation.tr("Enable Bluetooth")
+                        checked: Bluetooth.defaultAdapter?.enabled ?? false
+                        onCheckedChanged: {
+                            if (Bluetooth.defaultAdapter) {
+                                Bluetooth.defaultAdapter.enabled = checked;
                             }
                         }
                     }
