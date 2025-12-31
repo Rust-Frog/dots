@@ -80,6 +80,12 @@ Singleton {
         if (active) disconnectProc.exec(["nmcli", "connection", "down", active.ssid]);
     }
 
+    function forgetWifiNetwork(accessPoint: WifiAccessPoint): void {
+        //Agreessive but yeah this is the only way i can think of to delete a connection profile.
+        Quickshell.execDetached(["nmcli", "connection", "delete", accessPoint.ssid]);
+        getNetworks.running = true;
+    }
+
     function openPublicWifiPortal() {
         Quickshell.execDetached(["xdg-open", "https://nmcheck.gnome.org/"]) // From some StackExchange thread, seems to work
     }
