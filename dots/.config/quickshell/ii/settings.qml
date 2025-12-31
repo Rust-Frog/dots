@@ -29,6 +29,11 @@ ApplicationWindow {
             component: "modules/settings/QuickConfig.qml"
         },
         {
+            name: Translation.tr("Connectivity"),
+            icon: "settings_ethernet",
+            component: "modules/settings/ConnectivityConfig.qml"
+        },
+        {
             name: Translation.tr("General"),
             icon: "browse",
             component: "modules/settings/GeneralConfig.qml"
@@ -65,7 +70,27 @@ ApplicationWindow {
             component: "modules/settings/About.qml"
         }
     ]
-    property int currentPage: 0
+    
+    // Parse command-line arguments for deep-linking (e.g., --page=1 --tab=0)
+    property int initialPage: {
+        const args = Qt.application.arguments;
+        for (let i = 0; i < args.length; i++) {
+            if (args[i].startsWith("--page=")) {
+                return parseInt(args[i].split("=")[1]) || 0;
+            }
+        }
+        return 0;
+    }
+    property int initialTab: {
+        const args = Qt.application.arguments;
+        for (let i = 0; i < args.length; i++) {
+            if (args[i].startsWith("--tab=")) {
+                return parseInt(args[i].split("=")[1]) || 0;
+            }
+        }
+        return 0;
+    }
+    property int currentPage: initialPage
 
     visible: true
     onClosing: Qt.quit()

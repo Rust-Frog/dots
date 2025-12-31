@@ -50,7 +50,7 @@ WindowDialog {
         DialogButton {
             buttonText: Translation.tr("Details")
             onClicked: {
-                Quickshell.execDetached(["bash", "-c", `${Network.ethernet ? Config.options.apps.networkEthernet : Config.options.apps.network}`]);
+                Quickshell.execDetached(["quickshell", "-c", "ii/settings.qml", "--", "--page=1", "--tab=0"]);
                 GlobalStates.sidebarRightOpen = false;
             }
         }
