@@ -31,6 +31,10 @@ Singleton {
         return b.strength - a.strength;
     })
     property string wifiStatus: "disconnected"
+    
+    // Map of SSID -> [UUIDs] for saved connection profiles
+    // Used for reliable deletion by UUID instead of by name
+    property var savedConnectionsMap: ({})
 
     property string networkName: ""
     property int networkStrength
@@ -81,11 +85,23 @@ Singleton {
     }
 
     function forgetWifiNetwork(accessPoint: WifiAccessPoint): void {
-        console.info("[Network] Forgetting ALL profiles for network:", accessPoint.ssid);
-        // Use a loop to delete ALL connection profiles with this SSID
-        // This handles the case where multiple profiles exist with the same name
-        const cmd = "nmcli -g UUID,NAME connection show | grep ':" + accessPoint.ssid + "$' | cut -d: -f1 | xargs -r -n1 nmcli connection delete";
-        forgetProc.exec(["bash", "-c", cmd]);
+        const ssid = accessPoint.ssid;
+        const uuids = root.savedConnectionsMap[ssid];
+        
+        if (!uuids || uuids.length === 0) {
+            console.warn("[Network] No saved profiles found for:", ssid);
+            // Fall back to refreshing the connections map and trying again
+            getConnections.running = true;
+            return;
+        }
+        
+        console.info("[Network] Forgetting", uuids.length, "profile(s) for:", ssid);
+        
+        // Delete each UUID using the forgetProc
+        for (const uuid of uuids) {
+            console.info("[Network] Deleting UUID:", uuid);
+            forgetProc.exec(["nmcli", "connection", "delete", uuid]);
+        }
     }
 
     function openPublicWifiPortal() {
@@ -157,8 +173,9 @@ Singleton {
         }
         onExited: (exitCode, exitStatus) => {
             console.info("[Network forgetProc] exited with code:", exitCode);
-            // Refresh network list after deletion completes
+            // Refresh both network list and saved connections map after deletion
             getNetworks.running = true;
+            getConnections.running = true;
         }
     }
 
@@ -177,6 +194,42 @@ Singleton {
             onRead: {
                 wifiScanning = false;
                 getNetworks.running = true;
+            }
+        }
+    }
+
+    // Fetch saved connection profiles to build SSID -> UUID map
+    Process {
+        id: getConnections
+        running: true
+        command: ["nmcli", "-g", "NAME,UUID,TYPE", "-t", "connection", "show"]
+        environment: ({
+            LANG: "C",
+            LC_ALL: "C"
+        })
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const newMap = {};
+                const lines = text.trim().split("\n");
+                for (const line of lines) {
+                    if (!line) continue;
+                    // Format: NAME:UUID:TYPE (escaping handled by -t flag)
+                    const parts = line.split(":");
+                    if (parts.length >= 3) {
+                        const name = parts[0];
+                        const uuid = parts[1];
+                        const type = parts[2];
+                        // Only track wifi connections
+                        if (type === "802-11-wireless") {
+                            if (!newMap[name]) {
+                                newMap[name] = [];
+                            }
+                            newMap[name].push(uuid);
+                        }
+                    }
+                }
+                root.savedConnectionsMap = newMap;
+                console.info("[Network] Saved connections map updated:", Object.keys(newMap).length, "networks");
             }
         }
     }
