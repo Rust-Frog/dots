@@ -113,7 +113,8 @@ Singleton {
         // TODO: enterprise wifi with username
         network.askingPassword = false;
         root.wifiConnectTarget = network;
-        // Use a dedicated process that properly handles the password environment variable
+        // First delete any existing (potentially broken) profiles, then connect fresh with password
+        // This prevents nmcli from trying to activate a broken profile
         connectWithPasswordProc.exec({
             "environment": {
                 "LANG": "C",
@@ -121,7 +122,7 @@ Singleton {
                 "WIFI_SSID": network.ssid,
                 "WIFI_PASSWORD": password
             },
-            "command": ["bash", "-c", "nmcli dev wifi connect \"$WIFI_SSID\" password \"$WIFI_PASSWORD\""]
+            "command": ["bash", "-c", "nmcli connection delete \"$WIFI_SSID\" 2>/dev/null; nmcli dev wifi connect \"$WIFI_SSID\" password \"$WIFI_PASSWORD\""]
         });
     }
 
