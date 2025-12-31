@@ -60,7 +60,8 @@ WindowDialog {
         DialogButton {
             buttonText: Translation.tr("Details")
             onClicked: {
-                Quickshell.execDetached(["quickshell", "-c", "ii/settings.qml", "--", "--page=1", "--tab=1"]);
+                const settingsPath = FileUtils.trimFileProtocol(Directories.config) + "/quickshell/ii/settings.qml";
+                Quickshell.execDetached(["sh", "-c", "QS_SETTINGS_PAGE=1 QS_SETTINGS_TAB=1 quickshell -p '" + settingsPath + "'"]);
                 GlobalStates.sidebarRightOpen = false;
             }
         }
