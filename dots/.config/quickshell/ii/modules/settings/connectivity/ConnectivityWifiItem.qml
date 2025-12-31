@@ -12,9 +12,29 @@ Rectangle {
     property bool isConnecting: Network.wifiConnectTarget === root.wifiNetwork && !wifiNetwork?.active
     property bool isActive: wifiNetwork?.active ?? false
     property bool isAskingPassword: wifiNetwork?.askingPassword ?? false
+    property bool expanded: false
+    
+    // Parse security type for display
+    property string securityType: {
+        const sec = (wifiNetwork?.security ?? "").toUpperCase();
+        if (sec.includes("WPA3")) return "WPA3";
+        if (sec.includes("WPA2")) return "WPA2";
+        if (sec.includes("WPA")) return "WPA";
+        if (sec.includes("WEP")) return "WEP";
+        if (sec.length === 0) return "Open";
+        return sec;
+    }
+    
+    // Frequency band (2.4GHz vs 5GHz)
+    property string frequencyBand: {
+        const freq = wifiNetwork?.frequency ?? 0;
+        if (freq >= 5000) return "5 GHz";
+        if (freq >= 2400) return "2.4 GHz";
+        return "";
+    }
     
     Layout.fillWidth: true
-    implicitHeight: contentColumn.implicitHeight + 20
+    implicitHeight: contentColumn.implicitHeight + 24
     radius: Appearance.rounding.normal
     color: isActive ? Appearance.colors.colPrimaryContainer : 
            root.hovered ? Appearance.colors.colLayer2Hover : Appearance.colors.colLayer2
@@ -24,16 +44,22 @@ Rectangle {
     Behavior on color {
         animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
     }
+    
+    Behavior on implicitHeight {
+        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+    }
 
     MouseArea {
         id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
-        cursorShape: isAskingPassword ? Qt.ArrowCursor : Qt.PointingHandCursor
+        cursorShape: Qt.PointingHandCursor
         enabled: !isConnecting && !isAskingPassword
         
         onClicked: {
-            if (!isActive) {
+            if (isActive) {
+                root.expanded = !root.expanded;
+            } else {
                 Network.connectToWifiNetwork(wifiNetwork);
             }
         }
@@ -45,69 +71,181 @@ Rectangle {
             left: parent.left
             right: parent.right
             top: parent.top
-            margins: 10
+            margins: 12
         }
-        spacing: 8
+        spacing: 10
 
         RowLayout {
             Layout.fillWidth: true
             spacing: 12
 
-            // Signal strength icon
-            MaterialSymbol {
-                property int strength: root.wifiNetwork?.strength ?? 0
-                text: strength > 80 ? "signal_wifi_4_bar" : 
-                      strength > 60 ? "network_wifi_3_bar" : 
-                      strength > 40 ? "network_wifi_2_bar" : 
-                      strength > 20 ? "network_wifi_1_bar" : "signal_wifi_0_bar"
-                iconSize: 24
-                color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+            // Animated signal strength icon
+            Item {
+                implicitWidth: 28
+                implicitHeight: 28
+                
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    property int strength: root.wifiNetwork?.strength ?? 0
+                    text: strength > 80 ? "signal_wifi_4_bar" : 
+                          strength > 60 ? "network_wifi_3_bar" : 
+                          strength > 40 ? "network_wifi_2_bar" : 
+                          strength > 20 ? "network_wifi_1_bar" : "signal_wifi_0_bar"
+                    iconSize: 26
+                    color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                    
+                    // Pulsing animation when connecting
+                    opacity: root.isConnecting ? pulseAnim.opacity : 1.0
+                    
+                    NumberAnimation on opacity {
+                        id: pulseAnim
+                        running: root.isConnecting
+                        from: 0.4
+                        to: 1.0
+                        duration: 800
+                        loops: Animation.Infinite
+                        easing.type: Easing.InOutSine
+                    }
+                }
             }
 
-            // Network name
+            // Network info
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 2
+                spacing: 4
                 
                 StyledText {
-                    Layout.fillWidth: true
                     text: root.wifiNetwork?.ssid ?? Translation.tr("Unknown")
                     elide: Text.ElideRight
                     font.pixelSize: Appearance.font.pixelSize.normal
+                    font.weight: root.isActive ? Font.Medium : Font.Normal
                     color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                    Layout.fillWidth: true
                 }
                 
-                StyledText {
-                    visible: root.isActive || root.isConnecting
-                    text: root.isConnecting ? Translation.tr("Connecting...") : 
-                          root.isActive ? Translation.tr("Connected") : ""
-                    font.pixelSize: Appearance.font.pixelSize.smaller
-                    color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
-                    opacity: 0.8
+                RowLayout {
+                    spacing: 6
+                    
+                    // Security badge - using Item wrapper to avoid opacity issues
+                    Item {
+                        visible: root.securityType !== "Open"
+                        implicitWidth: securityBadge.width
+                        implicitHeight: securityBadge.height
+                        
+                        Rectangle {
+                            id: securityBadge
+                            width: securityRow.implicitWidth + 12
+                            height: 20
+                            radius: 4
+                            color: Appearance.colors.colPrimary
+                            opacity: 0.15
+                        }
+                        
+                        RowLayout {
+                            id: securityRow
+                            anchors.centerIn: securityBadge
+                            spacing: 4
+                            z: 1  // Ensure content is above background
+                            
+                            MaterialSymbol {
+                                text: "lock"
+                                iconSize: 12
+                                color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                            }
+                            StyledText {
+                                text: root.securityType
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                                color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                            }
+                        }
+                    }
+                    
+                    // Open network badge
+                    Item {
+                        visible: root.securityType === "Open"
+                        implicitWidth: openBadge.width
+                        implicitHeight: openBadge.height
+                        
+                        Rectangle {
+                            id: openBadge
+                            width: openRow.implicitWidth + 12
+                            height: 20
+                            radius: 4
+                            color: Appearance.colors.colTertiary
+                            opacity: 0.2
+                        }
+                        
+                        RowLayout {
+                            id: openRow
+                            anchors.centerIn: openBadge
+                            spacing: 4
+                            z: 1
+                            
+                            MaterialSymbol {
+                                text: "lock_open"
+                                iconSize: 12
+                                color: Appearance.colors.colTertiary
+                            }
+                            StyledText {
+                                text: "Open"
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                                color: Appearance.colors.colTertiary
+                            }
+                        }
+                    }
+                    
+                    // Frequency badge
+                    Item {
+                        visible: root.frequencyBand.length > 0
+                        implicitWidth: freqBadge.width
+                        implicitHeight: freqBadge.height
+                        
+                        Rectangle {
+                            id: freqBadge
+                            width: freqText.implicitWidth + 12
+                            height: 20
+                            radius: 4
+                            color: Appearance.colors.colOnLayer2
+                            opacity: 0.1
+                        }
+                        
+                        StyledText {
+                            id: freqText
+                            anchors.centerIn: freqBadge
+                            text: root.frequencyBand
+                            font.pixelSize: 11
+                            color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colSubtext
+                        }
+                    }
+                    
+                    // Status text
+                    StyledText {
+                        visible: root.isConnecting
+                        text: Translation.tr("Connecting...")
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        color: Appearance.colors.colSubtext
+                    }
                 }
             }
 
-            // Security/status icon
+            // Expand/action indicator
             MaterialSymbol {
-                text: root.isActive ? "check_circle" : 
-                      root.isConnecting ? "sync" : 
-                      root.wifiNetwork?.isSecure ? "lock" : ""
-                visible: text.length > 0
+                visible: root.isActive && !root.isAskingPassword
+                text: "keyboard_arrow_down"
                 iconSize: 20
-                color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                color: Appearance.colors.colOnPrimaryContainer
+                rotation: root.expanded ? 180 : 0
                 
-                RotationAnimator on rotation {
-                    running: root.isConnecting
-                    from: 0
-                    to: 360
-                    duration: 1000
-                    loops: Animation.Infinite
+                Behavior on rotation {
+                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                 }
             }
 
             // Disconnect button for active network
             RippleButton {
-                visible: root.isActive
+                visible: root.isActive && !root.expanded
                 implicitWidth: 100
                 implicitHeight: 32
                 buttonRadius: Appearance.rounding.full
@@ -125,11 +263,104 @@ Rectangle {
             }
         }
 
+        // Expanded details section (for connected network)
+        ColumnLayout {
+            visible: root.expanded && root.isActive
+            Layout.fillWidth: true
+            Layout.leftMargin: 40
+            spacing: 8
+            
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: Appearance.colors.colOutlineVariant
+                opacity: 0.5
+            }
+            
+            RowLayout {
+                Layout.fillWidth: true
+                
+                StyledText {
+                    text: Translation.tr("Signal Strength")
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colOnPrimaryContainer
+                    opacity: 0.7
+                }
+                Item { Layout.fillWidth: true }
+                StyledText {
+                    text: `${root.wifiNetwork?.strength ?? 0}%`
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colOnPrimaryContainer
+                }
+            }
+            
+            RowLayout {
+                Layout.fillWidth: true
+                
+                StyledText {
+                    text: Translation.tr("Security")
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colOnPrimaryContainer
+                    opacity: 0.7
+                }
+                Item { Layout.fillWidth: true }
+                StyledText {
+                    text: root.wifiNetwork?.security || "None"
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colOnPrimaryContainer
+                }
+            }
+            
+            RowLayout {
+                Layout.fillWidth: true
+                
+                StyledText {
+                    text: Translation.tr("Frequency")
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colOnPrimaryContainer
+                    opacity: 0.7
+                }
+                Item { Layout.fillWidth: true }
+                StyledText {
+                    text: `${root.wifiNetwork?.frequency ?? 0} MHz`
+                    font.pixelSize: Appearance.font.pixelSize.small
+                    color: Appearance.colors.colOnPrimaryContainer
+                }
+            }
+            
+            RippleButton {
+                Layout.alignment: Qt.AlignRight
+                Layout.topMargin: 4
+                implicitWidth: 110
+                implicitHeight: 34
+                buttonRadius: Appearance.rounding.full
+                colBackground: Appearance.colors.colError
+                colBackgroundHover: Appearance.colors.colErrorHover
+                
+                onClicked: Network.disconnectWifiNetwork()
+                
+                contentItem: RowLayout {
+                    anchors.centerIn: parent
+                    spacing: 6
+                    MaterialSymbol {
+                        text: "link_off"
+                        iconSize: 16
+                        color: Appearance.colors.colOnError
+                    }
+                    StyledText {
+                        text: Translation.tr("Disconnect")
+                        color: Appearance.colors.colOnError
+                        font.pixelSize: Appearance.font.pixelSize.small
+                    }
+                }
+            }
+        }
+
         // Password entry section
         ColumnLayout {
             visible: root.isAskingPassword
             Layout.fillWidth: true
-            Layout.topMargin: 8
+            Layout.topMargin: 4
             spacing: 10
 
             MaterialTextField {
@@ -170,7 +401,7 @@ Rectangle {
                 }
                 
                 RippleButton {
-                    implicitWidth: 80
+                    implicitWidth: 100
                     implicitHeight: 32
                     buttonRadius: Appearance.rounding.full
                     colBackground: Appearance.colors.colPrimary
@@ -182,10 +413,18 @@ Rectangle {
                         passwordField.text = "";
                     }
                     
-                    contentItem: StyledText {
+                    contentItem: RowLayout {
                         anchors.centerIn: parent
-                        text: Translation.tr("Connect")
-                        color: Appearance.colors.colOnPrimary
+                        spacing: 4
+                        MaterialSymbol {
+                            text: "wifi"
+                            iconSize: 16
+                            color: Appearance.colors.colOnPrimary
+                        }
+                        StyledText {
+                            text: Translation.tr("Connect")
+                            color: Appearance.colors.colOnPrimary
+                        }
                     }
                 }
             }

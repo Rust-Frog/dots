@@ -121,18 +121,39 @@ Item {
                 visible: Network.wifiEnabled
                 
                 // Empty state
-                RowLayout {
-                    visible: Network.friendlyWifiNetworks.length === 0
+                ColumnLayout {
+                    visible: Network.friendlyWifiNetworks.length === 0 && !Network.wifiScanning
                     Layout.fillWidth: true
-                    spacing: 12
+                    Layout.topMargin: 20
+                    Layout.bottomMargin: 20
+                    spacing: 8
                     
-                    MaterialSymbol {
-                        text: "wifi_off"
-                        iconSize: 32
-                        color: Appearance.colors.colSubtext
+                    Rectangle {
+                        Layout.alignment: Qt.AlignHCenter
+                        implicitWidth: 64
+                        implicitHeight: 64
+                        radius: 32
+                        color: Appearance.colors.colLayer3
+                        
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            text: "wifi_find"
+                            iconSize: 32
+                            color: Appearance.colors.colSubtext
+                        }
                     }
+                    
                     StyledText {
+                        Layout.alignment: Qt.AlignHCenter
                         text: Translation.tr("No networks found")
+                        font.pixelSize: Appearance.font.pixelSize.normal
+                        color: Appearance.colors.colOnLayer2
+                    }
+                    
+                    StyledText {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: Translation.tr("Click Scan to search for networks")
+                        font.pixelSize: Appearance.font.pixelSize.small
                         color: Appearance.colors.colSubtext
                     }
                 }
@@ -311,20 +332,44 @@ Item {
                 title: Translation.tr("Available Devices")
                 visible: (Bluetooth.defaultAdapter?.enabled ?? false)
                 
-                // Empty state
-                RowLayout {
-                    visible: BluetoothStatus.friendlyDeviceList.length === 0
+                // Empty state - center it properly
+                Item {
+                    visible: BluetoothStatus.friendlyDeviceList.length === 0 && !(Bluetooth.defaultAdapter?.discovering ?? false)
                     Layout.fillWidth: true
-                    spacing: 12
+                    Layout.preferredHeight: 160
                     
-                    MaterialSymbol {
-                        text: "bluetooth_disabled"
-                        iconSize: 32
-                        color: Appearance.colors.colSubtext
-                    }
-                    StyledText {
-                        text: Translation.tr("No Bluetooth devices found")
-                        color: Appearance.colors.colSubtext
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        spacing: 12
+                        
+                        Rectangle {
+                            Layout.alignment: Qt.AlignHCenter
+                            implicitWidth: 72
+                            implicitHeight: 72
+                            radius: 36
+                            color: Appearance.colors.colLayer3
+                            
+                            MaterialSymbol {
+                                anchors.centerIn: parent
+                                text: "bluetooth_searching"
+                                iconSize: 36
+                                color: Appearance.colors.colSubtext
+                            }
+                        }
+                        
+                        StyledText {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: Translation.tr("No devices found")
+                            font.pixelSize: Appearance.font.pixelSize.normal
+                            color: Appearance.colors.colOnLayer2
+                        }
+                        
+                        StyledText {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: Translation.tr("Click Scan to discover nearby devices")
+                            font.pixelSize: Appearance.font.pixelSize.small
+                            color: Appearance.colors.colSubtext
+                        }
                     }
                 }
                 
