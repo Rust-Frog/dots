@@ -81,7 +81,7 @@ Singleton {
     }
 
     function forgetWifiNetwork(accessPoint: WifiAccessPoint): void {
-        // Use a proper process to ensure the deletion completes before refreshing
+        console.info("[Network] Forgetting network:", accessPoint.ssid);
         forgetProc.exec(["nmcli", "connection", "delete", accessPoint.ssid]);
     }
 
@@ -142,7 +142,18 @@ Singleton {
 
     Process {
         id: forgetProc
-        onExited: {
+        environment: ({
+            LANG: "C",
+            LC_ALL: "C"
+        })
+        stdout: SplitParser {
+            onRead: line => console.info("[Network forgetProc stdout]", line)
+        }
+        stderr: SplitParser {
+            onRead: line => console.error("[Network forgetProc stderr]", line)
+        }
+        onExited: (exitCode, exitStatus) => {
+            console.info("[Network forgetProc] exited with code:", exitCode);
             // Refresh network list after deletion completes
             getNetworks.running = true;
         }
