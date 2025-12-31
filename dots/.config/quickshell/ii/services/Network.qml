@@ -111,12 +111,14 @@ Singleton {
     function changePassword(network: WifiAccessPoint, password: string, username = ""): void {
         // TODO: enterprise wifi with username
         network.askingPassword = false;
-        changePasswordProc.exec({
+        root.wifiConnectTarget = network;
+        // Use nmcli dev wifi connect with password - this creates a proper profile with security settings
+        connectProc.exec({
             "environment": {
                 "PASSWORD": password
             },
-            "command": ["bash", "-c", `nmcli connection modify ${network.ssid} wifi-sec.psk "$PASSWORD"`]
-        })
+            "command": ["bash", "-c", "nmcli dev wifi connect \"" + network.ssid + "\" password \"$PASSWORD\""]
+        });
     }
 
     Process {
