@@ -85,6 +85,7 @@ Rectangle {
                 implicitHeight: 28
                 
                 MaterialSymbol {
+                    id: signalIcon
                     anchors.centerIn: parent
                     property int strength: root.wifiNetwork?.strength ?? 0
                     text: strength > 80 ? "signal_wifi_4_bar" : 
@@ -93,18 +94,22 @@ Rectangle {
                           strength > 20 ? "network_wifi_1_bar" : "signal_wifi_0_bar"
                     iconSize: 26
                     color: root.isActive ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer2
+                    opacity: 1.0
                     
                     // Pulsing animation when connecting
-                    opacity: root.isConnecting ? pulseAnim.opacity : 1.0
-                    
                     NumberAnimation on opacity {
-                        id: pulseAnim
                         running: root.isConnecting
                         from: 0.4
                         to: 1.0
                         duration: 800
                         loops: Animation.Infinite
                         easing.type: Easing.InOutSine
+                    }
+
+                    onOpacityChanged: {
+                        if (!root.isConnecting && opacity !== 1.0) {
+                            opacity = 1.0;
+                        }
                     }
                 }
             }
