@@ -84,22 +84,21 @@ Singleton {
         if (active) disconnectProc.exec(["nmcli", "connection", "down", active.ssid]);
     }
 
+    // Holy shit this was a nightmare to debug. NetworkManager creates ghost profiles,
+    // nmcli lies about what it deletes, and UUIDs are the only truth in this world.
+    // We fetch UUIDs from savedConnectionsMap and delete each one. F*** you, key-mgmt errors.
     function forgetWifiNetwork(accessPoint: WifiAccessPoint): void {
         const ssid = accessPoint.ssid;
         const uuids = root.savedConnectionsMap[ssid];
         
         if (!uuids || uuids.length === 0) {
-            console.warn("[Network] No saved profiles found for:", ssid);
-            // Fall back to refreshing the connections map and trying again
+            // No profiles? Refresh the map and pray
             getConnections.running = true;
             return;
         }
         
-        console.info("[Network] Forgetting", uuids.length, "profile(s) for:", ssid);
-        
-        // Delete each UUID using the forgetProc
+        // Delete each UUID - finally, something that actually works f me this mtf is hard
         for (const uuid of uuids) {
-            console.info("[Network] Deleting UUID:", uuid);
             forgetProc.exec(["nmcli", "connection", "delete", uuid]);
         }
     }
@@ -108,13 +107,16 @@ Singleton {
         Quickshell.execDetached(["xdg-open", "https://nmcheck.gnome.org/"]) // From some StackExchange thread, seems to work
     }
 
+    // After hours of debugging, we discovered:
+    // 1. Failed connections create broken profiles
+    // 2. nmcli tries to reuse broken profiles instead of creating new ones
+    // 3. The only solution: DELETE EVERYTHING and start fresh. Beautiful.
     function providePass(network: WifiAccessPoint, password: string, username = ""): void {
-        console.info("[Network] providePass called for:", network.ssid, "password length:", password.length);
         // TODO: enterprise wifi with username
         network.askingPassword = false;
         root.wifiConnectTarget = network;
-        // First delete any existing (potentially broken) profiles, then connect fresh with password
-        // This prevents nmcli from trying to activate a broken profile
+        // Nuke any existing profiles, then connect with fresh credentials
+        // This is the ONLY way to avoid the cursed "key-mgmt: property is missing" error
         connectWithPasswordProc.exec({
             "environment": {
                 "LANG": "C",
@@ -138,50 +140,41 @@ Singleton {
         })
         stdout: SplitParser {
             onRead: line => {
-                console.info("[Network connectProc stdout]", line);
                 getNetworks.running = true;
             }
         }
         stderr: SplitParser {
             onRead: line => {
-                console.error("[Network connectProc stderr]", line);
                 if (line.includes("Secrets were required") && root.wifiConnectTarget) {
-                    console.info("[Network] Password required, showing password prompt");
                     root.wifiConnectTarget.askingPassword = true;
                 }
             }
         }
         onExited: (exitCode, exitStatus) => {
-            console.info("[Network connectProc] exited with code:", exitCode);
             if (root.wifiConnectTarget) {
                 root.wifiConnectTarget.askingPassword = (exitCode !== 0);
             }
-            root.wifiConnectTarget = null
+            root.wifiConnectTarget = null;
         }
     }
 
-    // Dedicated process for connecting with password - environment is set per-exec
+    // This bad boy finally works after we figured out the environment variable nightmare
     Process {
         id: connectWithPasswordProc
         stdout: SplitParser {
             onRead: line => {
-                console.info("[Network connectWithPasswordProc stdout]", line);
                 getNetworks.running = true;
                 getConnections.running = true;
             }
         }
         stderr: SplitParser {
-            onRead: line => {
-                console.error("[Network connectWithPasswordProc stderr]", line);
-            }
+            onRead: line => {}
         }
         onExited: (exitCode, exitStatus) => {
-            console.info("[Network connectWithPasswordProc] exited with code:", exitCode);
             if (root.wifiConnectTarget) {
                 root.wifiConnectTarget.askingPassword = (exitCode !== 0);
             }
             root.wifiConnectTarget = null;
-            // Refresh connection list
             getNetworks.running = true;
             getConnections.running = true;
         }
@@ -201,14 +194,13 @@ Singleton {
             LC_ALL: "C"
         })
         stdout: SplitParser {
-            onRead: line => console.info("[Network forgetProc stdout]", line)
+            onRead: line => {}
         }
         stderr: SplitParser {
-            onRead: line => console.error("[Network forgetProc stderr]", line)
+            onRead: line => {}
         }
         onExited: (exitCode, exitStatus) => {
-            console.info("[Network forgetProc] exited with code:", exitCode);
-            // Refresh both network list and saved connections map after deletion
+            // Victory lap - refresh everything
             getNetworks.running = true;
             getConnections.running = true;
         }
@@ -264,7 +256,6 @@ Singleton {
                     }
                 }
                 root.savedConnectionsMap = newMap;
-                console.info("[Network] Saved connections map updated:", Object.keys(newMap).length, "networks");
             }
         }
     }
