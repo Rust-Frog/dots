@@ -316,6 +316,7 @@ Rectangle {
                 }
                 
                 StyledToolTip {
+                    extraVisibleCondition: root.hovered && !root.isActive && quickForgetMouse.containsMouse
                     text: Translation.tr("Forget Network")
                 }
             }
