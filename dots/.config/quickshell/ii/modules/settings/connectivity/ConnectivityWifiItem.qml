@@ -188,7 +188,7 @@ Rectangle {
                                 color: Appearance.colors.colTertiary
                             }
                             StyledText {
-                                text: "Open"
+                                text: Translation.tr("Open")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Appearance.colors.colTertiary
@@ -318,7 +318,7 @@ Rectangle {
                 }
                 Item { Layout.fillWidth: true }
                 StyledText {
-                    text: root.wifiNetwork?.security || "None"
+                    text: root.wifiNetwork?.security || Translation.tr("None")
                     font.pixelSize: Appearance.font.pixelSize.small
                     color: Appearance.colors.colOnPrimaryContainer
                 }
