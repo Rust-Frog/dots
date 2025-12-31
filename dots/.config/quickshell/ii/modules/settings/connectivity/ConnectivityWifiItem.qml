@@ -483,7 +483,7 @@ Rectangle {
                 inputMethodHints: Qt.ImhSensitiveData
                 
                 onAccepted: {
-                    Network.changePassword(root.wifiNetwork, passwordField.text);
+                    Network.providePass(root.wifiNetwork, passwordField.text);
                     passwordField.text = "";
                 }
             }
@@ -521,7 +521,7 @@ Rectangle {
                     enabled: passwordField.text.length > 0
                     
                     onClicked: {
-                        Network.changePassword(root.wifiNetwork, passwordField.text);
+                        Network.providePass(root.wifiNetwork, passwordField.text);
                         passwordField.text = "";
                     }
                     

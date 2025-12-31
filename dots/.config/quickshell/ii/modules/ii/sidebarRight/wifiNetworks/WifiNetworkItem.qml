@@ -64,7 +64,7 @@ DialogListItem {
                 inputMethodHints: Qt.ImhSensitiveData
 
                 onAccepted: {
-                    Network.changePassword(root.wifiNetwork, passwordField.text);
+                    Network.providePass(root.wifiNetwork, passwordField.text);
                 }
             }
 
@@ -85,7 +85,7 @@ DialogListItem {
                 DialogButton {
                     buttonText: Translation.tr("Connect")
                     onClicked: {
-                        Network.changePassword(root.wifiNetwork, passwordField.text);
+                        Network.providePass(root.wifiNetwork, passwordField.text);
                     }
                 }
             }
