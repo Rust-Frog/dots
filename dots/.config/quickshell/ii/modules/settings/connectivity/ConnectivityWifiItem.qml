@@ -279,6 +279,46 @@ Rectangle {
                     onClicked: Network.disconnectWifiNetwork()
                 }
             }
+            
+            // Quick Forget button (visible on hover for any network)
+            Item {
+                visible: root.hovered && !root.isActive && !root.isConnecting && !root.isAskingPassword
+                implicitWidth: 32
+                implicitHeight: 32
+                
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 16
+                    color: quickForgetMouse.containsMouse ? Appearance.colors.colErrorHover : Appearance.colors.colError
+                    opacity: 0.8
+                    
+                    Behavior on color {
+                        animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                    }
+                }
+                
+                MaterialSymbol {
+                    anchors.centerIn: parent
+                    text: "delete"
+                    iconSize: 16
+                    color: Appearance.colors.colOnError
+                }
+                
+                MouseArea {
+                    id: quickForgetMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        console.info("[UI] Quick Forget clicked for:", root.wifiNetwork?.ssid);
+                        Network.forgetWifiNetwork(root.wifiNetwork);
+                    }
+                }
+                
+                StyledToolTip {
+                    text: Translation.tr("Forget Network")
+                }
+            }
         }
 
         // Expanded details section (for connected network)
