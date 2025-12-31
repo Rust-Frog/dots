@@ -346,36 +346,84 @@ Rectangle {
                 }
             }
             
-            // Disconnect icon
-            Item {
+            // Actions Row
+            RowLayout {
                 Layout.alignment: Qt.AlignRight
                 Layout.topMargin: 4
-                implicitWidth: 36
-                implicitHeight: 36
-                
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 18
-                    color: expandedDisconnectMouse.containsMouse ? Appearance.colors.colErrorHover : Appearance.colors.colError
+                spacing: 12
+
+                // Disconnect button
+                Item {
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    property bool hovered: expandedDisconnectMouse.containsMouse
                     
-                    Behavior on color {
-                        animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 18
+                        color: expandedDisconnectMouse.containsMouse ? Appearance.colors.colErrorHover : Appearance.colors.colError
+                        
+                        Behavior on color {
+                            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                        }
+                    }
+                    
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "link_off"
+                        iconSize: 20
+                        color: Appearance.colors.colOnError
+                    }
+                    
+                    MouseArea {
+                        id: expandedDisconnectMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Network.disconnectWifiNetwork()
+                    }
+
+                    StyledToolTip {
+                        extraVisibleCondition: root.expanded && root.isActive
+                        text: Translation.tr("Disconnect")
                     }
                 }
                 
-                MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: "link_off"
-                    iconSize: 20
-                    color: Appearance.colors.colOnError
-                }
-                
-                MouseArea {
-                    id: expandedDisconnectMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: Network.disconnectWifiNetwork()
+                // Forget button
+                Item {
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    property bool hovered: forgetMouseArea.containsMouse
+                    
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 18
+                        color: forgetMouseArea.containsMouse ? Appearance.colors.colErrorHover : Appearance.colors.colError
+                        
+                        Behavior on color {
+                            animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                        }
+                    }
+                    
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "delete"
+                        iconSize: 20
+                        color: Appearance.colors.colOnError
+                    }
+                    
+                    MouseArea {
+                        id: forgetMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Network.forgetWifiNetwork(root.wifiNetwork)
+                    }
+                    
+                    StyledToolTip {
+                        extraVisibleCondition: root.expanded && root.isActive
+                        text: Translation.tr("Forget Network")
+                    }
                 }
             }
         }
