@@ -243,22 +243,35 @@ Rectangle {
                 }
             }
 
-            // Disconnect button for active network
-            RippleButton {
+            // Disconnect icon for active network
+            Item {
                 visible: root.isActive && !root.expanded
-                implicitWidth: 100
-                implicitHeight: 32
-                buttonRadius: Appearance.rounding.full
-                colBackground: Appearance.colors.colError
-                colBackgroundHover: Appearance.colors.colErrorHover
+                implicitWidth: 36
+                implicitHeight: 36
                 
-                onClicked: Network.disconnectWifiNetwork()
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 18
+                    color: disconnectMouseArea.containsMouse ? Appearance.colors.colErrorHover : Appearance.colors.colError
+                    
+                    Behavior on color {
+                        animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                    }
+                }
                 
-                contentItem: StyledText {
+                MaterialSymbol {
                     anchors.centerIn: parent
-                    text: Translation.tr("Disconnect")
+                    text: "link_off"
+                    iconSize: 20
                     color: Appearance.colors.colOnError
-                    font.pixelSize: Appearance.font.pixelSize.small
+                }
+                
+                MouseArea {
+                    id: disconnectMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Network.disconnectWifiNetwork()
                 }
             }
         }
@@ -328,30 +341,36 @@ Rectangle {
                 }
             }
             
-            RippleButton {
+            // Disconnect icon
+            Item {
                 Layout.alignment: Qt.AlignRight
                 Layout.topMargin: 4
-                implicitWidth: 110
-                implicitHeight: 34
-                buttonRadius: Appearance.rounding.full
-                colBackground: Appearance.colors.colError
-                colBackgroundHover: Appearance.colors.colErrorHover
+                implicitWidth: 36
+                implicitHeight: 36
                 
-                onClicked: Network.disconnectWifiNetwork()
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 18
+                    color: expandedDisconnectMouse.containsMouse ? Appearance.colors.colErrorHover : Appearance.colors.colError
+                    
+                    Behavior on color {
+                        animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                    }
+                }
                 
-                contentItem: RowLayout {
+                MaterialSymbol {
                     anchors.centerIn: parent
-                    spacing: 6
-                    MaterialSymbol {
-                        text: "link_off"
-                        iconSize: 16
-                        color: Appearance.colors.colOnError
-                    }
-                    StyledText {
-                        text: Translation.tr("Disconnect")
-                        color: Appearance.colors.colOnError
-                        font.pixelSize: Appearance.font.pixelSize.small
-                    }
+                    text: "link_off"
+                    iconSize: 20
+                    color: Appearance.colors.colOnError
+                }
+                
+                MouseArea {
+                    id: expandedDisconnectMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Network.disconnectWifiNetwork()
                 }
             }
         }
