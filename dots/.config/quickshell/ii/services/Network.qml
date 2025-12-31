@@ -81,8 +81,11 @@ Singleton {
     }
 
     function forgetWifiNetwork(accessPoint: WifiAccessPoint): void {
-        console.info("[Network] Forgetting network:", accessPoint.ssid);
-        forgetProc.exec(["nmcli", "connection", "delete", accessPoint.ssid]);
+        console.info("[Network] Forgetting ALL profiles for network:", accessPoint.ssid);
+        // Use a loop to delete ALL connection profiles with this SSID
+        // This handles the case where multiple profiles exist with the same name
+        const cmd = "nmcli -g UUID,NAME connection show | grep ':" + accessPoint.ssid + "$' | cut -d: -f1 | xargs -r -n1 nmcli connection delete";
+        forgetProc.exec(["bash", "-c", cmd]);
     }
 
     function openPublicWifiPortal() {
