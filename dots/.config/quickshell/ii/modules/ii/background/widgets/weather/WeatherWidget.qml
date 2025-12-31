@@ -7,6 +7,7 @@ import qs.modules.common.functions
 import qs.modules.common.widgets
 import qs.modules.common.widgets.widgetCanvas
 import qs.modules.ii.background.widgets
+import qs.modules.ii.bar.weather
 
 AbstractBackgroundWidget {
     id: root
@@ -29,6 +30,7 @@ AbstractBackgroundWidget {
         color: Appearance.colors.colSurfaceContainer
         border.width: 1
         border.color: Appearance.colors.colOutlineVariant
+        layer.enabled: false
 
         ColumnLayout {
             id: contentLayout
@@ -86,6 +88,20 @@ AbstractBackgroundWidget {
                     text: Weather.data?.city ?? "Unknown"
                 }
             }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
+            propagateComposedEvents: true
+
+            onEntered: weatherPopup.open()
+            onExited: weatherPopup.close()
+        }
+
+        WeatherPopup {
+            id: weatherPopup
         }
     }
 }
