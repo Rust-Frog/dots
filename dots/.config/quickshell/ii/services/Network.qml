@@ -23,6 +23,11 @@ Singleton {
     property WifiAccessPoint wifiConnectTarget
     readonly property list<WifiAccessPoint> wifiNetworks: []
     readonly property WifiAccessPoint active: wifiNetworks.find(n => n.active) ?? null
+    
+    // Saved connection names (SSIDs with profiles)
+    property var savedConnectionNames: new Set()
+    
+    // Sorted and categorized network lists
     readonly property list<var> friendlyWifiNetworks: [...wifiNetworks].sort((a, b) => {
         if (a.active && !b.active)
             return -1;
@@ -30,11 +35,10 @@ Singleton {
             return 1;
         return b.strength - a.strength;
     })
-    property string wifiStatus: "disconnected"
+    readonly property list<var> savedNetworks: friendlyWifiNetworks.filter(n => n.isSaved && !n.active)
+    readonly property list<var> availableNetworks: friendlyWifiNetworks.filter(n => !n.isSaved && !n.active)
     
-    // Map of SSID -> [UUIDs] for saved connection profiles
-    // Used for reliable deletion by UUID instead of by name
-    property var savedConnectionsMap: ({})
+    property string wifiStatus: "disconnected"
 
     property string networkName: ""
     property int networkStrength
@@ -85,23 +89,8 @@ Singleton {
     }
 
     function forgetWifiNetwork(accessPoint: WifiAccessPoint): void {
-        const ssid = accessPoint.ssid;
-        const uuids = root.savedConnectionsMap[ssid];
-        
-        if (!uuids || uuids.length === 0) {
-            console.warn("[Network] No saved profiles found for:", ssid);
-            // Fall back to refreshing the connections map and trying again
-            getConnections.running = true;
-            return;
-        }
-        
-        console.info("[Network] Forgetting", uuids.length, "profile(s) for:", ssid);
-        
-        // Delete each UUID using the forgetProc
-        for (const uuid of uuids) {
-            console.info("[Network] Deleting UUID:", uuid);
-            forgetProc.exec(["nmcli", "connection", "delete", uuid]);
-        }
+        // Use a proper process to ensure the deletion completes before refreshing
+        forgetProc.exec(["nmcli", "connection", "delete", accessPoint.ssid]);
     }
 
     function openPublicWifiPortal() {
@@ -111,13 +100,40 @@ Singleton {
     function changePassword(network: WifiAccessPoint, password: string, username = ""): void {
         // TODO: enterprise wifi with username
         network.askingPassword = false;
+        network.connectionError = ""; // Clear previous errors
+        root.wifiConnectTarget = network;
+        // Try to update saved password first, then connect
+        // This handles both: 1) saved networks with changed passwords, 2) new networks
         changePasswordProc.exec({
             "environment": {
                 "PASSWORD": password,
                 "SSID": network.ssid
             },
-            "command": ["bash", "-c", 'nmcli connection modify "$SSID" wifi-sec.psk "$PASSWORD"']
+            // First try to modify existing profile, if that fails (no profile exists), 
+            // create new connection with password
+            "command": ["bash", "-c", `
+                if nmcli connection show "$SSID" &>/dev/null; then
+                    # Profile exists - update password and reconnect
+                    nmcli connection modify "$SSID" wifi-sec.psk "$PASSWORD" && \
+                    nmcli connection up "$SSID"
+                else
+                    # No profile - create new connection
+                    nmcli dev wifi connect "$SSID" password "$PASSWORD"
+                fi
+            `]
         })
+        connectionTimeoutTimer.restart(); // Start timeout
+    }
+
+    function cancelConnection(): void {
+        if (root.wifiConnectTarget) {
+            root.wifiConnectTarget.askingPassword = false;
+            root.wifiConnectTarget.connectionError = "";
+        }
+        connectionTimeoutTimer.stop();
+        connectProc.signal(15); // SIGTERM
+        changePasswordProc.signal(15);
+        root.wifiConnectTarget = null;
     }
 
     Process {
@@ -161,29 +177,57 @@ Singleton {
 
     Process {
         id: forgetProc
-        environment: ({
-            LANG: "C",
-            LC_ALL: "C"
-        })
-        stdout: SplitParser {
-            onRead: line => console.info("[Network forgetProc stdout]", line)
-        }
-        stderr: SplitParser {
-            onRead: line => console.error("[Network forgetProc stderr]", line)
-        }
-        onExited: (exitCode, exitStatus) => {
-            console.info("[Network forgetProc] exited with code:", exitCode);
-            // Refresh both network list and saved connections map after deletion
-            getNetworks.running = true;
-            getConnections.running = true;
+        onExited: {
+            // Refresh saved connections and network list after deletion
+            getSavedConnections.running = true;
         }
     }
 
     Process {
         id: changePasswordProc
-        onExited: { // Re-attempt connection after changing password
-            connectProc.running = false
-            connectProc.running = true
+        environment: ({
+            LANG: "C",
+            LC_ALL: "C"
+        })
+        stderr: SplitParser {
+            onRead: line => {
+                // Capture common error messages
+                if (root.wifiConnectTarget) {
+                    if (line.includes("Secrets were required") || line.includes("No secrets")) {
+                        root.wifiConnectTarget.connectionError = "Wrong password";
+                        root.wifiConnectTarget.askingPassword = true;
+                    } else if (line.includes("Not authorized") || line.includes("not authorized")) {
+                        root.wifiConnectTarget.connectionError = "Not authorized";
+                    } else if (line.includes("No network")) {
+                        root.wifiConnectTarget.connectionError = "Network not found";
+                    } else if (line.includes("timeout") || line.includes("Timeout")) {
+                        root.wifiConnectTarget.connectionError = "Connection timed out";
+                    }
+                }
+            }
+        }
+        onExited: (exitCode, exitStatus) => {
+            connectionTimeoutTimer.stop();
+            if (exitCode === 0 && root.wifiConnectTarget) {
+                // Success - clear any error
+                root.wifiConnectTarget.connectionError = "";
+            }
+            // Refresh networks after connection attempt
+            getNetworks.running = true;
+            root.wifiConnectTarget = null;
+        }
+    }
+
+    Timer {
+        id: connectionTimeoutTimer
+        interval: 30000 // 30 seconds timeout
+        onTriggered: {
+            if (root.wifiConnectTarget) {
+                root.wifiConnectTarget.connectionError = "Connection timed out";
+                root.wifiConnectTarget.askingPassword = false;
+            }
+            changePasswordProc.signal(15); // SIGTERM
+            root.wifiConnectTarget = null;
         }
     }
 
@@ -194,42 +238,6 @@ Singleton {
             onRead: {
                 wifiScanning = false;
                 getNetworks.running = true;
-            }
-        }
-    }
-
-    // Fetch saved connection profiles to build SSID -> UUID map
-    Process {
-        id: getConnections
-        running: true
-        command: ["nmcli", "-g", "NAME,UUID,TYPE", "connection", "show"]
-        environment: ({
-            LANG: "C",
-            LC_ALL: "C"
-        })
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const newMap = {};
-                const lines = text.trim().split("\n");
-                for (const line of lines) {
-                    if (!line) continue;
-                    // Format: NAME:UUID:TYPE (escaping handled by -t flag)
-                    const parts = line.split(":");
-                    if (parts.length >= 3) {
-                        const name = parts[0];
-                        const uuid = parts[1];
-                        const type = parts[2];
-                        // Only track wifi connections
-                        if (type === "802-11-wireless") {
-                            if (!newMap[name]) {
-                                newMap[name] = [];
-                            }
-                            newMap[name].push(uuid);
-                        }
-                    }
-                }
-                root.savedConnectionsMap = newMap;
-                console.info("[Network] Saved connections map updated:", Object.keys(newMap).length, "networks");
             }
         }
     }
@@ -338,6 +346,31 @@ Singleton {
         }
     }
 
+    // Fetch saved Wi-Fi connection names
+    Process {
+        id: getSavedConnections
+        running: true
+        command: ["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"]
+        environment: ({
+            LANG: "C",
+            LC_ALL: "C"
+        })
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const savedNames = new Set();
+                text.trim().split("\n").forEach(line => {
+                    const parts = line.split(":");
+                    if (parts[1] === "802-11-wireless") {
+                        savedNames.add(parts[0]);
+                    }
+                });
+                root.savedConnectionNames = savedNames;
+                // Re-fetch networks to update isSaved status
+                getNetworks.running = true;
+            }
+        }
+    }
+
     Process {
         id: getNetworks
         running: true
@@ -354,13 +387,15 @@ Singleton {
 
                 const allNetworks = text.trim().split("\n").map(n => {
                     const net = n.replace(rep, PLACEHOLDER).split(":");
+                    const ssid = net[3];
                     return {
                         active: net[0] === "yes",
                         strength: parseInt(net[1]),
                         frequency: parseInt(net[2]),
-                        ssid: net[3],
+                        ssid: ssid,
                         bssid: net[4]?.replace(rep2, ":") ?? "",
-                        security: net[5] || ""
+                        security: net[5] || "",
+                        isSaved: root.savedConnectionNames.has(ssid)
                     };
                 }).filter(n => n.ssid && n.ssid.length > 0);
 
