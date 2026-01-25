@@ -43,7 +43,7 @@ Singleton {
         press: 0,
         temp: 0,
         tempFeelsLike: 0,
-        lastRefresh: 0,
+        wText: ""
     })
 
     function refineData(data) {
@@ -77,7 +77,6 @@ Singleton {
             temp.temp += "°C";
             temp.tempFeelsLike += "°C";
         }
-        temp.lastRefresh = DateTime.time + " • " + DateTime.date;
         root.data = temp;
     }
 

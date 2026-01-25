@@ -7,34 +7,28 @@ import qs.modules.common.functions
 import qs.modules.common.widgets
 import qs.modules.common.widgets.widgetCanvas
 import qs.modules.ii.background.widgets
-import qs.modules.ii.bar.weather
 
 AbstractBackgroundWidget {
     id: root
 
     configEntryName: "weather"
-    needsColText: true
 
     implicitHeight: card.implicitHeight
     implicitWidth: card.implicitWidth
-
-    // Secondary color with slightly less contrast for subtitles
-    property color colTextSecondary: ColorUtils.transparentize(colText, 0.3)
 
     StyledDropShadow {
         target: card
     }
 
-    // Card background with transparent/adaptive styling
+    // Card background with theme colors
     Rectangle {
         id: card
         implicitWidth: 180
         implicitHeight: contentLayout.implicitHeight + 24
         radius: Appearance.rounding.large
-        color: ColorUtils.transparentize(Appearance.colors.colSurfaceContainer, 0.5)
+        color: Appearance.colors.colSurfaceContainer
         border.width: 1
-        border.color: ColorUtils.transparentize(root.colText, 0.8)
-        layer.enabled: false
+        border.color: Appearance.colors.colOutlineVariant
 
         ColumnLayout {
             id: contentLayout
@@ -51,7 +45,7 @@ AbstractBackgroundWidget {
 
                 MaterialSymbol {
                     iconSize: 48
-                    color: root.colText
+                    color: Appearance.colors.colOnSurface
                     text: Icons.getWeatherIcon(Weather.data.wCode) ?? "cloud"
                 }
 
@@ -61,7 +55,7 @@ AbstractBackgroundWidget {
                         family: Appearance.font.family.expressive
                         weight: Font.Medium
                     }
-                    color: root.colText
+                    color: Appearance.colors.colOnSurface
                     text: Weather.data?.temp ?? "--°"
                 }
             }
@@ -72,7 +66,7 @@ AbstractBackgroundWidget {
                     pixelSize: Appearance.font.pixelSize.normal
                     weight: Font.Medium
                 }
-                color: root.colTextSecondary
+                color: Appearance.colors.colOnSurfaceVariant
                 text: Weather.data?.wText ?? "Loading..."
             }
 
@@ -82,30 +76,16 @@ AbstractBackgroundWidget {
 
                 MaterialSymbol {
                     iconSize: Appearance.font.pixelSize.small
-                    color: root.colTextSecondary
+                    color: Appearance.colors.colOnSurfaceVariant
                     text: "location_on"
                 }
 
                 StyledText {
                     font.pixelSize: Appearance.font.pixelSize.smaller
-                    color: root.colTextSecondary
+                    color: Appearance.colors.colOnSurfaceVariant
                     text: Weather.data?.city ?? "Unknown"
                 }
             }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            acceptedButtons: Qt.NoButton
-            propagateComposedEvents: true
-
-            onEntered: weatherPopup.open()
-            onExited: weatherPopup.close()
-        }
-
-        WeatherPopup {
-            id: weatherPopup
         }
     }
 }
