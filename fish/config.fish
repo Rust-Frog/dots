@@ -43,7 +43,3 @@ if status is-interactive
     # Custom fish config
     source ~/.config/caelestia/user-config.fish 2> /dev/null
 end
-
-# Caelestia local paths
-set -gx QML_IMPORT_PATH "$HOME/.local/usr/lib/qt6/qml" $QML_IMPORT_PATH
-set -gx QT_PLUGIN_PATH "$HOME/.local/lib/qt6/plugins" $QT_PLUGIN_PATH

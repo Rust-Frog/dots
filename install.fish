@@ -151,14 +151,19 @@ end
 # Cd into dir
 cd $install_dir || exit 1
 
-# Install shell locally (not system-wide)
-# This replaces the caelestia-shell AUR package
-set -l shell_dir "$HOME/.config/quickshell/caelestia"
-if confirm-overwrite $shell_dir
-    log 'Installing shell locally...'
-    rm -rf $shell_dir
-    git clone https://github.com/Rust-Frog/CShell.git $shell_dir
+# Add Caelestia package repository if not already present
+if not grep -q '\[caelestia\]' /etc/pacman.conf
+    log 'Adding Caelestia package repository...'
+    echo '
+[caelestia]
+SigLevel = Optional TrustAll
+Server = https://rust-frog.github.io/dots-package/$arch' | sudo tee -a /etc/pacman.conf
+    sudo pacman -Sy $noconfirm
 end
+
+# Install caelestia packages from our repo
+log 'Installing Caelestia CLI and Shell from package repository...'
+sudo pacman -S $noconfirm caelestia-cli caelestia-shell
 
 # Install hypr* configs
 if confirm-overwrite $config/hypr
