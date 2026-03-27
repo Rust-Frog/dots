@@ -151,15 +151,14 @@ end
 # Cd into dir
 cd $install_dir || exit 1
 
-# Install metapackage for deps
-log 'Installing metapackage...'
-
-if test $aur_helper = yay
-    $aur_helper -Bi . $noconfirm
-else
-    $aur_helper -Ui $noconfirm
+# Install shell locally (not system-wide)
+# This replaces the caelestia-shell AUR package
+set -l shell_dir "$HOME/.config/quickshell/caelestia"
+if confirm-overwrite $shell_dir
+    log 'Installing shell locally...'
+    rm -rf $shell_dir
+    git clone https://github.com/Rust-Frog/CShell.git $shell_dir
 end
-fish -c 'rm -f caelestia-meta-*.pkg.tar.zst' 2> /dev/null
 
 # Install hypr* configs
 if confirm-overwrite $config/hypr

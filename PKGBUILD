@@ -1,26 +1,26 @@
-# caelestia-meta
-
-# Maintainer: Soramane <soramane32 at gmail dot com>
-
-pkgname='caelestia-meta'
-pkgver=r183.cf94e7f
+pkgname=caelestia-shell
+pkgver=1.0.0
 pkgrel=1
-pkgdesc='A metapackage containing all dependencies for the Caelestia dotfiles'
+pkgdesc="The Caelestia shell configuration"
 arch=('any')
-url='https://github.com/caelestia-dots/caelestia'
+url="https://github.com/Rust-Frog/CShell"
 license=('GPL-3.0-only')
-depends=('caelestia-cli' 'caelestia-shell'
-         'hyprland' 'xdg-desktop-portal-hyprland' 'xdg-desktop-portal-gtk' 'hyprpicker'
-         'wl-clipboard' 'cliphist' 'inotify-tools' 'app2unit' 'wireplumber' 'trash-cli'
-         'foot' 'fish' 'eza' 'fastfetch' 'starship' 'btop' 'jq' 'adw-gtk-theme'
-         'papirus-icon-theme' 'qtengine-git' 'ttf-jetbrains-mono-nerd')
-optdepends=('thunar: file manager'
-            'spotify: music player'
-            'vscode: code editor'
-            'zen-browser: web browser'
-            'todoist-appimage: todo manager'
-            'uwsm: uwsm session'
-            'gnome-keyring: keyring daemon'
-            'polkit-gnome: gnome polkit client'
-            'direnv: isolated dev envs'
-            'zoxide: better cd')
+source=("git+https://github.com/Rust-Frog/CShell.git")
+sha256sums=('SKIP')
+
+build() {
+  cd CShell
+  # Build any assets if needed
+}
+
+package() {
+  cd CShell
+  install -Dm644 LICENSE "${pkgdir}/etc/xdg/quickshell/caelestia/LICENSE"
+  cp -r services "${pkgdir}/etc/xdg/quickshell/caelestia/"
+  cp -r modules "${pkgdir}/etc/xdg/quickshell/caelestia/"
+  cp -r components "${pkgdir}/etc/xdg/quickshell/caelestia/"
+  cp -r config "${pkgdir}/etc/xdg/quickshell/caelestia/"
+  cp -r assets "${pkgdir}/etc/xdg/quickshell/caelestia/"
+  cp shell.qml "${pkgdir}/etc/xdg/quickshell/caelestia/"
+  install -Dm755 shell.nix "${pkgdir}/etc/xdg/quickshell/caelestia/shell.nix"
+}
