@@ -174,6 +174,12 @@ if not contains "$HOME/.local/bin" $PATH
     fish_add_path "$HOME/.local/bin"
 end
 
+# Generate color scheme if needed (before hyprctl reload)
+if ! test -f $state/caelestia/scheme.json
+    log 'Generating initial color scheme...'
+    $HOME/.local/bin/caelestia scheme set -n shadotheme
+end
+
 # Symlink shell directory for Quickshell to find
 # Shell is installed at ~/.local/etc/xdg/quickshell/caelestia
 # Symlink to ~/.config/quickshell/caelestia so quickshell finds it
@@ -321,14 +327,7 @@ if set -q _flag_zen
     log 'Please install the CaelestiaFox extension from https://addons.mozilla.org/en-US/firefox/addon/caelestiafox if you have not already done so.'
 end
 
-# Generate scheme stuff if needed
-if ! test -f $state/caelestia/scheme.json
-    caelestia scheme set -n shadotheme
-    sleep .5
-    hyprctl reload
-end
-
 # Start the shell
-caelestia shell -d > /dev/null
+$HOME/.local/bin/caelestia shell -d > /dev/null
 
 log 'Done!'
