@@ -151,19 +151,30 @@ end
 # Cd into dir
 cd $install_dir || exit 1
 
-# Add Caelestia package repository if not already present
-if not grep -q '\[caelestia\]' /etc/pacman.conf
-    log 'Adding Caelestia package repository...'
-    echo '
-[caelestia]
-SigLevel = Optional TrustAll
-Server = https://rust-frog.github.io/dots-package/$arch' | sudo tee -a /etc/pacman.conf
-    sudo pacman -Sy $noconfirm
+# Install caelestia-cli and caelestia-shell to ~/.local
+set -l base_url "https://rust-frog.github.io/dots-package"
+
+log 'Installing Caelestia CLI to ~/.local...'
+curl -sL "$base_url/caelestia-cli-latest.tar.gz" | tar xzf - -C $HOME
+
+log 'Installing Caelestia Shell to ~/.local...'
+curl -sL "$base_url/caelestia-shell-latest.tar.gz" | tar xzf - -C $HOME
+
+# Ensure ~/.local/bin is in PATH
+if not contains "$HOME/.local/bin" $PATH
+    log 'Adding ~/.local/bin to PATH...'
+    fish_add_path "$HOME/.local/bin"
 end
 
-# Install caelestia packages from our repo
-log 'Installing Caelestia CLI and Shell from package repository...'
-sudo pacman -S $noconfirm caelestia-cli caelestia-shell
+# Symlink shell directory for Quickshell to find
+# Shell is installed at ~/.local/etc/xdg/quickshell/caelestia
+# Symlink to ~/.config/quickshell/caelestia so quickshell finds it
+set -l shell_config "$HOME/.config/quickshell/caelestia"
+if confirm-overwrite $shell_config
+    log 'Linking shell config for Quickshell...'
+    mkdir -p (dirname $shell_config)
+    ln -s "$HOME/.local/etc/xdg/quickshell/caelestia" $shell_config
+end
 
 # Install hypr* configs
 if confirm-overwrite $config/hypr
