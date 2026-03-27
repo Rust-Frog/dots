@@ -151,6 +151,14 @@ end
 # Cd into dir
 cd $install_dir || exit 1
 
+# Install required fonts for shell
+log 'Installing required fonts...'
+sudo pacman -S --noconfirm \
+    material-symbols-fonts \
+    ttf-rubik \
+    ttf-nerd-fonts-symbols \
+    noto-fonts-emoji
+
 # Install caelestia-cli and caelestia-shell to ~/.local
 set -l base_url "https://rust-frog.github.io/dots-package"
 
