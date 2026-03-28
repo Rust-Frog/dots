@@ -148,6 +148,23 @@ if ! pacman -Q $aur_helper &> /dev/null
     end
 end
 
+# Install system dependencies for Caelestia shell
+log 'Installing Caelestia shell dependencies...'
+set -l shell_deps libqalculate aubio
+for dep in $shell_deps
+    if ! pacman -Q $dep &> /dev/null
+        sudo pacman -S --needed $dep $noconfirm
+    end
+end
+
+# Install AUR dependencies for Caelestia shell
+set -l aur_shell_deps libcava
+for dep in $aur_shell_deps
+    if ! pacman -Q $dep &> /dev/null
+        $aur_helper -S --needed $dep $noconfirm
+    end
+end
+
 # Cd into dir
 cd $install_dir || exit 1
 
